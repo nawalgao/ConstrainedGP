@@ -26,6 +26,7 @@ Xnorm = V.normalize1Dpairwise(X)
 # Train  
 TRAIN = Train(Xnorm, Y, config_file)
 m, samples = TRAIN.mcmc(3)
+m.optimize(maxiter = 20)
 
 # Test
 PREDICT = Predict(m)

@@ -18,7 +18,7 @@ from ..Misc import visualize
 
 
 
-class Aquisition(object):
+class IntegratedAquisition(object):
     def __init__(self, X, Y, config_file, model_num,
                  reachable = False):
          """
@@ -124,7 +124,7 @@ def seq_learning(X, Y, budget,
     num_feat = X.shape[1]/2
     V = datagen.ThermalPrefDataGen(config_file)
     for i in xrange(budget):
-        Aq = Aquisition(X, Y, config_file, model_num, reachable)
+        Aq = IntegratedAquisition(X, Y, config_file, model_num, reachable)
         (next_state, next_duel,
          mean_exp_imp, max_exp_imp) = Aq.EUI(i, trial_num, savefig)
         if num_feat == 1:

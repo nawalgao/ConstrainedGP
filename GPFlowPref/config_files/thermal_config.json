@@ -9,6 +9,10 @@
 		"Lmax" : 10,
 		"verbose" : "True"
 	},
+"MAP":
+	{
+		"max_iter" : 500
+	},
 "Prior":
 	{
 		"lengthscales" : "gpflow.priors.Gamma(1., 1.)",
