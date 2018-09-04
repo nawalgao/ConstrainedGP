@@ -41,13 +41,14 @@ def diff_ut(iter_num, trial_num,
     Different utilities along with the associated uncertainities
     """
     PREDICT = Predict(m)
-    meangrid, vargrid = PREDICT.u(samples, Xgridnorm)
+    meangrid, vargrid = PREDICT.u_mcmc(samples, Xgridnorm)
     plt.figure(figsize=(12,8))
     for i in xrange(10,10 + num_gps):
         visualize_utility(Xgrid,meangrid[i,:],vargrid[i,:])
     if savefig:
         plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                     '/utility_samples/Ih' + str(iter_num) + 'D' + str(i) + '.png', dpi = 600)
+        plt.close()
 
 
 
@@ -90,6 +91,7 @@ def visualize_utility_train(iter_num, trial_num,
         if savefig:
             plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                         '/latent_f_train/It' + str(iter_num) + 'D' + str(i) + '.png', dpi = 600)
+        plt.close()
     
 def visualize_EUI(Xgrid, mean_imp, iter_num, trial_num, savefig = True):
     plt.figure(figsize = (12,8))
@@ -101,6 +103,7 @@ def visualize_EUI(Xgrid, mean_imp, iter_num, trial_num, savefig = True):
     if savefig:
         plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                     '/exp_imp_plots/' + str(iter_num) + '.png', dpi = 600)
+    plt.close()
 
 def visualize_latent_v(samples,iter_num, trial_num, savefig = True):
     for i in xrange(samples.shape[1]/2 + 1): 
@@ -118,6 +121,7 @@ def visualize_latent_v(samples,iter_num, trial_num, savefig = True):
         if savefig:
             plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                         '/latent_v/Ih' + str(iter_num) + 'D' + str(i) + '.png', dpi = 600)
+        plt.close()
             
 def autocorr(samples,iter_num, trial_num, savefig = True):
     for i in range(samples.shape[1]):  

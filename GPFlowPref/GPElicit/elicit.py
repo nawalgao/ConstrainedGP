@@ -20,45 +20,56 @@ from ..Misc import visualize
 
 class IntegratedAquisition(object):
     def __init__(self, X, Y, config_file, model_num,
-                 reachable = False):
-         """
-         Different preference elicitation related aquisition functions
-         """
-         V = datagen.ThermalPrefDataGen(config_file)
-         self.X = X
-         self.num_feat = X.shape[1]/2
-         self.Y = Y
-         self.config_file = config_file
-         self.model_num = model_num
-         if self.num_feat == 1:
-             self.Xtrainnorm = V.normalize1Dpairwise(X)
-         elif self.num_feat == 2:
+                 mcmc = True, reachable = False):
+        
+        """
+        Different preference elicitation related aquisition functions
+        """
+        V = datagen.ThermalPrefDataGen(config_file)
+        self.X = X
+        self.num_feat = X.shape[1]/2
+        self.Y = Y
+        self.config_file = config_file
+        self.model_num = model_num
+        if self.num_feat == 1:
+            self.Xtrainnorm = V.normalize1Dpairwise(X)
+        elif self.num_feat == 2:
             self.Xtrainnorm = V.normalize2Dpairwise(X)
              
-         # Train the model based on training pairwise comparisons
-         TRAIN = Train(self.Xtrainnorm, Y, config_file)
-         self.m, self.samples = TRAIN.mcmc(self.model_num)
+        # Train the model based on training pairwise comparisons
+           
+        TRAIN = Train(self.Xtrainnorm, Y, config_file, self.model_num)
+        if mcmc: 
+            self.m, self.samples = TRAIN.mcmc(config_file)
+        else:
+            self.m = TRAIN.maxpost(config_file)
+             
          
-         # Last state (shared state)
-         self.Xlaststate = X[-1, self.num_feat:]
+        # Last state (shared state)
+        self.Xlaststate = X[-1, self.num_feat:]
          
-         # Define reachable states
-         RS = datagen.ReachableStates(self.Xlaststate)
-         if self.num_feat == 1:
-             if reachable:
-                 self.Xreachable, self.Xreachablenorm = RS.reachable(config_file)
-             else:
-                 self.Xreachable, self.Xreachablenorm = RS.rs1D(config_file) # reachable function <---- edit this if you want
-         elif self.num_feat == 2:
+        # Define reachable states
+        RS = datagen.ReachableStates(self.Xlaststate)
+        if self.num_feat == 1:
+            if reachable:
+                self.Xreachable, self.Xreachablenorm = RS.reachable(config_file)
+            else:
+                self.Xreachable, self.Xreachablenorm = RS.rs1D(config_file) # reachable function <---- edit this if you want
+        elif self.num_feat == 2:
             raise ValueError('Stop!! Currently, this framework only supports 1D features')
             self.Xreachable, self.Xreachablenorm = RS.rs2D(config_file) # reachable function <---- edit this if you want
+         
+        PREDICT = Predict(self.m)
+        
+        # Predict GP mean and variance for posterior hyperparameter samples
+        if mcmc: 
+            (self.mtrainmat, self.vartrainmat,
+             self.mreachablemat, self.varreachablemat) = PREDICT.u_test_train_mcmc(self.samples,
+                                                 self.Xtrainnorm,
+                                                 self.Xreachablenorm)
+        else:
+            raise ValueError('Not yet implemented')
             
-         # Predict GP mean and variance for posterior hyperparameter samples
-         PREDICT = Predict(self.m)
-         (self.mtrainmat, self.vartrainmat,
-          self.mreachablemat, self.varreachablemat) = PREDICT.u_test_train(self.samples,
-                                                  self.Xtrainnorm,
-                                                  self.Xreachablenorm)
     def sanity_checks(self, iter_num, trial_num, mean_EUI, savefig):
         """
         1. Plotting expected improvement over current state utility
@@ -116,7 +127,7 @@ class IntegratedAquisition(object):
         return
 
 def seq_learning(X, Y, budget,
-                 config_file, trial_num, model_num, reachable,
+                 config_file, trial_num, model_num, mcmc, reachable,
                  savefig = False):
     """
     Sequential learning framework
@@ -124,7 +135,7 @@ def seq_learning(X, Y, budget,
     num_feat = X.shape[1]/2
     V = datagen.ThermalPrefDataGen(config_file)
     for i in xrange(budget):
-        Aq = IntegratedAquisition(X, Y, config_file, model_num, reachable)
+        Aq = IntegratedAquisition(X, Y, config_file, model_num, mcmc, reachable)
         (next_state, next_duel,
          mean_exp_imp, max_exp_imp) = Aq.EUI(i, trial_num, savefig)
         if num_feat == 1:

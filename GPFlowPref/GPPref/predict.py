@@ -16,14 +16,14 @@ class Predict(object):
     def __init__(self, m):
         self.m = m
         
-    def u(self, samples,  Xnorm):
+    def u_mcmc(self, samples,  Xnorm):
         """
         Utility posterior function values for normalized state matrix X_norm
         Inputs:
             Xnorm (N X 1) when only 1D (VI) feature vector or
             Xnorm (N X 2) when 2D (VI + SP) feature matrix
         Ouput:
-            Posteior mean and variance of GP (for each hyperparameter sample)
+            Posterior mean and variance of GP (for each hyperparameter sample)
         """
         meanmat = np.zeros(shape = (samples.shape[0], Xnorm.shape[0]))
         varmat = np.zeros(shape = (samples.shape[0], Xnorm.shape[0]))
@@ -35,7 +35,7 @@ class Predict(object):
         
         return meanmat, varmat
     
-    def u_test_train(self, samples, Xtrainnorm, Xtestnorm):
+    def u_test_train_mcmc(self, samples, Xtrainnorm, Xtestnorm):
         """
         Posterior GP mean and variance at training and testing state
         for each hyperparameter sample
@@ -50,7 +50,48 @@ class Predict(object):
         """
         num_feat = Xtrainnorm.shape[1]/2
         Xtrain_seccol_norm = Xtrainnorm[:,num_feat:]
-        mtrainmat, vartrainmat = self.u(samples, Xtrain_seccol_norm)
-        mtestmat, vartestmat = self.u(samples, Xtestnorm)
+        mtrainmat, vartrainmat = self.u_mcmc(samples, Xtrain_seccol_norm)
+        mtestmat, vartestmat = self.u_mcmc(samples, Xtestnorm)
         
         return mtrainmat, vartrainmat, mtestmat, vartestmat 
+    
+    def u_map(self, Xnorm):
+        """
+        Inputs:
+            Xnorm (N X 1) when only 1D (VI) feature vector or
+            Xnorm (N X 2) when 2D (VI + SP) feature matrix
+        Outputs:
+           Posterior mean and variance of GP (for MAP hyperparameter sample) 
+        """
+        mean, var = self.m.predict_f(Xnorm)
+        
+        return mean, var
+    
+    def u_test_train_map(self, Xtrainnorm, Xtestnorm):
+        """
+        Posterior GP mean and variance at training and testing state
+        for each hyperparameter sample
+        Inputs:
+            Xtrainnorm : Normalized training state values
+            Xtestnorm : Normalized testing state values
+        Outputs:
+            mtrain : GP mean value at training points
+            vartrain : Variance of GP at training points
+            mtest : GP mean at testing points | GP at training points
+            vartest : Variance of GP at testing points | GP at training points
+        """
+        mtrain, vartrain = self.u_map(Xtrainnorm)
+        mtest, vartest = self.u_map(Xtestnorm)
+        
+        return mtrain, vartrain, mtest, vartest
+        
+        
+    
+    
+    
+    
+    
+    
+    
+    
+        

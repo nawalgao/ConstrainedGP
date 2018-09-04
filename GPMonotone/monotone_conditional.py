@@ -1,0 +1,78 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Aug 30 19:03:34 2018
+
+@author: nimishawalgaonkar
+"""
+
+import tensorflow as tf
+from gpflow.scoping import NameScoped
+from gpflow._settings import settings
+float_type = settings.dtypes.float_type
+
+@NameScoped("conditional")
+def monotone_conditional(Xnew, X, X_prime, kern, f_concat, whiten=False):
+    """
+    Given F, representing the GP at the points X, and
+    F_prime representing dervative values of F at X_prime points,
+    produce the mean and (co-)variance of the GP at the points Xnew.
+
+    Additionally, there may be Gaussian uncertainty about F as represented by
+    q_sqrt. In this case `f` represents the mean of the distribution and
+    q_sqrt the square-root of the covariance.
+
+    Additionally, the GP may have been centered (whitened) so that
+        p(v) = N( 0, I)
+        f = L v
+    thus
+        p(f) = N(0, LL^T) = N(0, K).
+    In this case 'f' represents the values taken by v.
+
+    The method can either return the diagonals of the covariance matrix for
+    each output of the full covariance matrix (full_cov).
+
+    We assume K independent GPs, represented by the columns of f (and the
+    last dimension of q_sqrt).
+
+     - Xnew is a data matrix, size P x 1
+     - X are data points, size N x 1
+     - X_prine are datapoints, size M x 1
+     
+     
+     - kern is a GPflow kernel which supports monotonocity (eg. ExtendRBF1D())
+     - f is a data matrix, N x K, representing the function values at X, for K functions. K = 1 for now
+     - q_sqrt (optional) is a matrix of standard-deviations or Cholesky
+       matrices, size M x K or M x M x K
+     - whiten (optional) is a boolean: whether to whiten the representation
+       as described above.
+    """
+    
+    # compute kernel stuff
+    X_concat = tf.concat([X, X_prime], 0)
+    num_data = tf.shape(X_concat)[0]
+    num_func = 1 # only one output GP
+    
+    Kmm = kern.Kj(X, X_prime) + tf.eye(num_data, dtype=float_type) * settings.numerics.jitter_level
+    Kmn = kern.Kmn(Xnew, X, X_prime)
+    Lm  = tf.cholesky(Kmm)
+    
+    # Compute the projection matrix A
+    A = tf.matrix_triangular_solve(Lm, Kmn, lower = True)
+    
+    # compute the covariance due to the conditioning
+    fvar = kern.K(Xnew, Xnew) - tf.matmul(A, A, transpose_a=True)
+    shape = tf.stack([num_func, 1, 1])
+    fvar = tf.tile(tf.expand_dims(fvar, 0), shape)  # K x N x N or K x N
+    
+    # another backsubstitution in the unwhitened case
+    if not whiten:
+        A = tf.matrix_triangular_solve(tf.transpose(Lm), A, lower=False)
+
+    # construct the conditional mean
+    fmean = tf.matmul(A, f_concat, transpose_a=True)
+
+    fvar = tf.transpose(fvar)  # N x K or N x N x K
+
+    return fmean, fvar
+    
