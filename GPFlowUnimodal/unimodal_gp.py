@@ -1,10 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 30 18:58:17 2018
+Created on Tue Sep  4 11:36:54 2018
 
 @author: nimishawalgaonkar
 """
+
 import numpy as np
 import tensorflow as tf
 import gpflow
@@ -14,23 +15,24 @@ from gpflow._settings import settings
 float_type = settings.dtypes.float_type
 
 from .ker_w_der import ExtendRBF1D
-from .monotone_like import MonotoneLikelihood
+from .unimodal_like import UnimodalLikelihood
 
-class MonotoneGP(gpflow.model.Model):
-    def __init__(self, X_concat, Y, name = 'monotonic_model'):
+class UnimodalGP(gpflow.model.Model):
+    
+    def __init__(self, X_concat, Y, name = 'unimodal_model'):
         """
         X_concat is a data vector, size (N + M) x 1
         X_concat = (X, X_der_loc)
         Y is a data matrix, size N x 1 
     
-        This is a vanilla implementation of a GP with monotonicity contraints.
+        This is a vanilla implementation of a GP with unimodal contraints.
         
         Refer:
         https://bayesopt.github.io/papers/2017/9.pdf
-        
         """
+        
         if not X_concat.shape[1] == 1:
-            raise ValueError('Currently, GP with monotonicity is only supported for 1D')
+            raise ValueError('Currently, GP with unimodality is only supported for 1D')
         
         # Initialize the model
         gpflow.model.Model.__init__(self, name)
@@ -45,18 +47,18 @@ class MonotoneGP(gpflow.model.Model):
             #: Y is a data matrix, rows correspond to the rows in X, columns are treated independently
             Y = DataHolder(Y)
         
-        # Define kernel
-        self.kern = ExtendRBF1D()
+        # Define Kernels
+        self.kern_f = ExtendRBF1D()
+        self.kern_g = ExtendRBF1D()
         
-        # Define likelihood 
-        self.likelihood = MonotoneLikelihood()
+        # Define Likelihood 
+        self.likelihood = UnimodalLikelihood()
+        
         self.likelihood._check_targets(Y.value)
         
         # Initialize
         self.Y = Y
         self.X_concat = X_concat
-        
-        self._session = None
     
     def build_predict(self, *args, **kwargs):
         raise NotImplementedError
@@ -68,6 +70,14 @@ class MonotoneGP(gpflow.model.Model):
         at the points `Xnew`.
         """
         return self.build_predict(Xnew)
+    
+    @AutoFlow((float_type, [None, None]))
+    def predict_g(self, Xnew):
+        """
+        Compute the mean and variance of the latent function(s)
+        at the points `Xnew`.
+        """
+        return self.build_predict_g(Xnew)
 
     @AutoFlow((float_type, [None, None]))
     def predict_f_full_cov(self, Xnew):
@@ -84,6 +94,22 @@ class MonotoneGP(gpflow.model.Model):
         Xnew.
         """
         mu, var = self.build_predict(Xnew)
+        jitter = tf.eye(tf.shape(mu)[0], dtype=float_type) * settings.numerics.jitter_level
+        samples = []
+        for i in range(self.num_latent):
+            L = tf.cholesky(var[:, :, i] + jitter)
+            shape = tf.stack([tf.shape(L)[0], num_samples])
+            V = tf.random_normal(shape, dtype=settings.dtypes.float_type)
+            samples.append(mu[:, i:i + 1] + tf.matmul(L, V))
+        return tf.transpose(tf.stack(samples))
+    
+    @AutoFlow((float_type, [None, None]), (tf.int32, []))
+    def predict_g_samples(self, Xnew, num_samples):
+        """
+        Produce samples from the posterior latent function(s) at the points
+        Xnew.
+        """
+        mu, var = self.build_predict_g(Xnew)
         jitter = tf.eye(tf.shape(mu)[0], dtype=float_type) * settings.numerics.jitter_level
         samples = []
         for i in range(self.num_latent):
@@ -112,3 +138,5 @@ class MonotoneGP(gpflow.model.Model):
         """
         pred_f_mean, pred_f_var = self.build_predict(Xnew)
         return self.likelihood.predict_density(pred_f_mean, pred_f_var, Ynew)
+    
+    

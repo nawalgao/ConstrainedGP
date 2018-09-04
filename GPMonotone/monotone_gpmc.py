@@ -16,11 +16,14 @@ from .monotone_gp import MonotoneGP
 from .monotone_conditional import monotone_conditional
 
 class MonotoneGPMC(MonotoneGP):
-    def __init__(self, X, Y, X_prime, increasing = True):
+    def __init__(self, X, Y, X_prime, values):
         """
         X is a data vector, size N x 1
         X_prime is a vector, size M x 1
-        Y is a data matrix, size N x 1 
+        Y is a data vector, size N x 1 
+        values is a vector, size M x 1
+        values are 0 when derivatives of function are negative 
+        values are 1 when derivatives are positive
     
         This is a vanilla implementation of a GP with monotonicity contraints and HMC sampling
         Refer:
@@ -31,7 +34,7 @@ class MonotoneGPMC(MonotoneGP):
         Y = DataHolder(Y, on_shape_change='recompile')
         MonotoneGP.__init__(self, X_concat, Y)
         self.X = DataHolder(X)
-        self.ones = DataHolder(np.ones(X_prime.shape[0]))
+        self.values = DataHolder(values)
         self.X_prime = DataHolder(X_prime)
         self.num_data = X_concat.shape[0]
         self.num_x_points = X.shape[0]
@@ -66,10 +69,10 @@ class MonotoneGPMC(MonotoneGP):
         #print '2222...'
         F_concat = tf.matmul(L, self.V)
         F, F_prime = tf.split(F_concat, [self.num_x_points, self.num_der_points])
-        log_like = self.likelihood.logp(F, self.Y, F_prime, self.ones)
+        log_like = self.likelihood.logp(F, self.Y, F_prime, self.values)
         return log_like
     
-    def build_predict(self, Xnew,):
+    def build_predict(self, Xnew):
         """
         Xnew is a data matrix, point at which we want to predict
 
@@ -82,7 +85,7 @@ class MonotoneGPMC(MonotoneGP):
         """
         
         #V, V_prime = tf.split(self.V, [self.num_x_points, self.num_der_points])
-        mu, var = monotone_conditional(Xnew, self.X,self.X_prime, self.kern, self.V, 
-                                       whiten=True)
+        mu, var = monotone_conditional(Xnew, self.X,self.X_prime,
+                                           self.kern, self.V, whiten=True)
         return mu, var
 

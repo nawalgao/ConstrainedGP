@@ -17,24 +17,23 @@ float_type = settings.dtypes.float_type
 import tensorflow as tf
 
 class MonotoneLikelihood(Likelihood):
-    def __init__(self, increasing = True):
+    def __init__(self):
         """
         Likelihood for Gaussian Process with monotonicity constraints
         """
         Likelihood.__init__(self)
         self.nu = 1e-6
         self.noise_variance = Param(1.0, transforms.positive)
-        self.increasing = True
     
     def logp_ygf(self, F, Y):
         return tf.reduce_sum(densities.gaussian(F, Y, self.noise_variance))
     
-    def logp_m(self, F_prime, ones, invlink = probit):
-        if self.increasing is not True:
-            return tf.reduce_sum(densities.bernoulli(invlink(-1./self.nu*F_prime), ones))
-        else:
-            return tf.reduce_sum(densities.bernoulli(invlink(1./self.nu*F_prime), ones))
-            
+    def logp_m(self, F_prime, values, invlink = probit):
+        """
+        Values would be 0 if the derivatives are negative 
+        Values would be 1 if the derivatives are positive
+        """
+        return tf.reduce_sum(densities.bernoulli(invlink(1./self.nu*F_prime), values))
     
     def logp(self, F, Y, F_prime, ones):
         log_like_ygp = self.logp_ygf(F, Y)
