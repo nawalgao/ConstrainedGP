@@ -8,4 +8,4 @@ https://bayesopt.github.io/papers/2017/9.pdf
 
 3. Preference Learning with Unimodality - GPUnimodalPref
 
-Please check out the notebooks for working example.
+Please check out the notebooks for working examples.
