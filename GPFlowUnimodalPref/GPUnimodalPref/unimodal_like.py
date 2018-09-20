@@ -192,8 +192,6 @@ class UnimodalHiLoPrefLike1(UnimodalHiLoPrefLike):
               (float_type, [None, None]),
               (float_type, [None, None]),
               (float_type, [None, None]),
-              (float_type, [None, None]),
-              (float_type, [None, None]),
               (float_type, [None, None]))
     def compute_logp(self, F_prime, G, G_prime, z_obs, F_prime_z_obs):
         return self.logp(F_prime, G, G_prime, z_obs, F_prime_z_obs)
@@ -203,13 +201,14 @@ class UnimodalHiLoPrefLike1(UnimodalHiLoPrefLike):
     
 
 if __name__ == '__main__':
-    f = np.array([0,1,2,3])[:,None]
+    
+    f = np.array([0,1])[:,None]
+    
     f_prime = np.array([4,5])[:,None]
     g = np.array([6,7])[:,None]
     g_prime = np.array([8,9])[:,None]
-    y = np.array([0.,1.])[:,None]
-    
-    L = UnimodalPrefLikelihood()
-    L.compute_logp(y,f,f_prime,g,g_prime)
+    y = np.array([-1,1.])[:,None]
+    L = UnimodalHiLoPrefLike1()
+    L.compute_logp(f_prime,g,g_prime, y,f)
         
         
