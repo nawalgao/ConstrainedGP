@@ -44,10 +44,11 @@ def diff_ut(iter_num, trial_num,
     PREDICT = Predict(m)
     meangrid, vargrid = PREDICT.u_mcmc(samples, Xgridnorm)
     plt.figure(figsize=(12,8))
+    np.savez('../GPFlowPref/data/results/T' + str(trial_num) +
+                    '/utility_samples/Ih' + str(iter_num) + 'D' + '.npz',
+                    meangrid = meangrid, vargrid = vargrid)
     for i in xrange(10,10 + num_gps):
-        m.set_state(samples[i,:])
-        g = m.predict_g_samples(Xgridnorm, 1)
-        plt.plot(Xgridnorm, norm.cdf(g[0,:,:]), 'b', lw=2, alpha = 0.05)
+        visualize_utility(Xgrid,meangrid[i,:],vargrid[i,:])
     if savefig:
         plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                     '/utility_samples/Ih' + str(iter_num) + 'D' + str(i) + '.png', dpi = 600)
@@ -59,11 +60,12 @@ def diff_g(iter_num, trial_num,
     """
     Different utilities along with the associated uncertainities
     """
-    PREDICT = Predict(m)
-    meangrid, vargrid = PREDICT.g_mcmc(samples, Xgridnorm)
+    
     plt.figure(figsize=(12,8))
     for i in xrange(10,10 + num_gps):
-        visualize_utility(Xgrid,meangrid[i,:],vargrid[i,:])
+        m.set_state(samples[i,:])
+        g = m.predict_g_samples(Xgridnorm, 1)
+        plt.plot(Xgridnorm, norm.cdf(g[0,:,:]), 'b', lw=2, alpha = 0.05)
     if savefig:
         plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                     '/utility_samples/Ihg' + str(iter_num) + 'D' + str(i) + '.png', dpi = 600)
@@ -119,7 +121,7 @@ def visualize_EUI(Xgrid, mean_imp, iter_num, trial_num, savefig = True):
     plt.ylabel('Expected Improvement')
     plt.xlabel('State Values')
     plt.title('UEI ; Iter:' + str(iter_num))
-    plt.ylim(0, .2)
+    plt.ylim(0, .3)
     if savefig:
         plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                     '/exp_imp_plots/' + str(iter_num) + '.png', dpi = 600)

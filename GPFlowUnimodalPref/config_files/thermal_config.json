@@ -2,11 +2,11 @@
 "MCMC":
 	{
 		"MAP_optimize_maxiter" : 150,
-		"num_samples" : 2000,
+		"num_samples" : 5000,
 		"thin" : 2,
-		"burn" : 500,
-		"epsilon" : 0.005,
-		"Lmax" : 40,
+		"burn" : 3000,
+		"epsilon" : 0.01,
+		"Lmax" : 20,
 		"verbose" : "True"
 	},
 "MAP":
@@ -32,15 +32,10 @@
 	{
 		"min1" : 20,
 		"max1" : 27,
-		"numgrid1" : 40,
-		"min2" : 20,
-		"max2" : 80,
-		"numgrid2_1" : 40,
-		"numgrid2_2" : 10
+		"temp_diff" : 0.5
 	},
 "reachable_states":
 	{
-		"temp_diff" : 3,
-		"num_points" : 12
+		"temp_diff" : 3
 	}
 }

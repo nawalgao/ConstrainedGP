@@ -99,7 +99,7 @@ def visualize_EUI(Xgrid, mean_imp, iter_num, trial_num, savefig = True):
     plt.ylabel('Expected Improvement')
     plt.xlabel('State Values')
     plt.title('UEI ; Iter:' + str(iter_num))
-    plt.ylim(0, 1.)
+    plt.ylim(0, .1)
     if savefig:
         plt.savefig('../GPFlowPref/data/results/T' + str(trial_num) +
                     '/exp_imp_plots/' + str(iter_num) + '.png', dpi = 600)

@@ -1,10 +1,10 @@
 {
 "MCMC":
 	{
-		"MAP_optimize_maxiter" : 20,
+		"MAP_optimize_maxiter" : 150,
 		"num_samples" : 1000,
-		"thin" : 2,
-		"burn" : 500,
+		"thin" : 10,
+		"burn" : 1000,
 		"epsilon" : 0.1,
 		"Lmax" : 10,
 		"verbose" : "True"

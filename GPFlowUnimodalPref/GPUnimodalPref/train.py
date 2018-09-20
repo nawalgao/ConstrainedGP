@@ -41,6 +41,8 @@ class Train(object):
         m = UnimodalPrefGPMC(self.Xn, self.Y, self.X_prime)
         
         if model_num == 1:
+            print '-' * 40
+            print 'Model is 1'
             m.likelihood.noise_variance = gpflow.priors.Gamma(1., 1.)
             m.kern_f.lengthscale.prior = gpflow.priors.Gamma(1., 1.)
             m.kern_f.signal_variance.prior = gpflow.priors.Gamma(1.,1.)
