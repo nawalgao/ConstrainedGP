@@ -140,11 +140,12 @@ class ThermalPrefDataGen(object):
         """
         Generation of training duels and associated utilities
         """
-        n = 50 # number of datapoints
-        x1 = np.linspace(self.Gridmin1, self.Gridmax1, n)[:, None] # Operating temp.
+        #n = 14 # number of datapoints
+        #x1 = np.linspace(self.Gridmin1, self.Gridmax1, n)[:, None] # Operating temp.
+        x1 = np.arange(self.Gridmin1, self.Gridmax1, self.temp_diff)[:,None]
         
          # sampling from indexes
-        indexes = np.arange(n)
+        indexes = np.arange(x1.shape[0])
         
         ind_samp1 = np.random.choice(indexes, size = 1)
         x_samp1_01 = x1[ind_samp1]
@@ -170,6 +171,8 @@ class ThermalPrefDataGen(object):
         (x_samp11,
          x_samp21, u1, u2) = self.duels_gen(num_feat, num_datapoints)
         y_pr = gen_output(u1, u2)
+        #print x_samp11.shape[0]
+        #print x_samp21.shape[0]
         X = np.hstack([x_samp11, x_samp21])
         if save_file: 
             np.savez(save_file_name, X = X, Y = y_pr)
@@ -242,7 +245,7 @@ if __name__ == '__main__':
     save_file_name2 = '../data/initial_duels/train2D.npz'
     ThermalP = ThermalPrefDataGen(config_file)
     
-    X1, y_pr1 = ThermalP.pairwise1D(5, save_file_name1, save_file = False)
+    X1, y_pr1 = ThermalP.pairwise1D(40, save_file_name1, save_file = True)
     #X2, y_pr2 = ThermalP.pairwise2D(40, save_file_name2, save_file = True)
     
        
