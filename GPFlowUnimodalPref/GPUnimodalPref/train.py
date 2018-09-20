@@ -11,7 +11,7 @@ import json # Needed for config file
 import os
 import gpflow
  
-from .unimodal_gpmc import UnimodalPrefGPMC
+from .unimodal_gpmc import UnimodalPrefGPMC, UnimodalHiLoPrefGPMC
 
 class Train(object):
     """
@@ -34,15 +34,26 @@ class Train(object):
         num_feat = self.X.shape[1]/2
         self.Xn = np.vstack([self.X[:,num_feat:], self.X[:,:num_feat]])
          # Read configuration file
-        with open(self.config_file, 'r') as fd:
-            config = json.loads(fd.read())
-        
-        # Model Configuration
-        m = UnimodalPrefGPMC(self.Xn, self.Y, self.X_prime)
+#        with open(self.config_file, 'r') as fd:
+#            config = json.loads(fd.read())
         
         if model_num == 1:
+            # Model Configuration
+            m = UnimodalPrefGPMC(self.Xn, self.Y, self.X_prime)
             print '-' * 40
             print 'Model is 1'
+            print '-' * 40
+            m.likelihood.noise_variance = gpflow.priors.Gamma(1., 1.)
+            m.kern_f.lengthscale.prior = gpflow.priors.Gamma(1., 1.)
+            m.kern_f.signal_variance.prior = gpflow.priors.Gamma(1.,1.)
+            m.kern_g.lengthscale.prior = gpflow.priors.Gamma(1., 1.)
+            m.kern_g.signal_variance.prior = gpflow.priors.Gamma(1.,1.)
+        if model_num == 2:
+            # Model Configuration
+            m = UnimodalHiLoPrefGPMC(self.Xn, self.Y, self.X_prime)
+            print '-' * 40
+            print 'Model is 2'
+            print '-' * 40
             m.likelihood.noise_variance = gpflow.priors.Gamma(1., 1.)
             m.kern_f.lengthscale.prior = gpflow.priors.Gamma(1., 1.)
             m.kern_f.signal_variance.prior = gpflow.priors.Gamma(1.,1.)

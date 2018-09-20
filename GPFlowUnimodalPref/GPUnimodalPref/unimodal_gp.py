@@ -52,9 +52,9 @@ class UnimodalGP(gpflow.model.Model):
         self.kern_g = ExtendRBF1D()
         
         # Define Likelihood 
-        self.likelihood = UnimodalLikelihood()
+        #self.likelihood = UnimodalLikelihood()
         
-        self.likelihood._check_targets(Y.value)
+        #self.likelihood._check_targets(Y.value)
         
         # Initialize
         self.Y = Y

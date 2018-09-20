@@ -128,13 +128,26 @@ class ThermalPrefDataGen(object):
         """
         x1 = X[:,0]
         x2 = X[:,1]
-        u1 = objfunc.beta_utility_gen(x1, self.l,
+        u1, u1_der = objfunc.beta_utility_gen(x1, self.l,
                                              self.a, self.b)
-        u2 = objfunc.beta_utility_gen(x2, self.l,
+        u2, u2_der = objfunc.beta_utility_gen(x2, self.l,
                                              self.a, self.b)
         
         y_pr = gen_output(u1, u2)
         return y_pr
+    
+    def response_grad_gen1D(self, X):
+        x1 = X[:,0]
+        x2 = X[:,1]
+        u1, u1_der = objfunc.beta_utility_gen(x1, self.l,
+                                             self.a, self.b)
+        u2, u2_der = objfunc.beta_utility_gen(x2, self.l,
+                                             self.a, self.b)
+        y_pr = np.zeros(u2_der.shape[0])
+        y_pr[u2_der > 0] = 1.
+        y_pr[u2_der < 0] = -1.
+        return y_pr
+        
     
     def duels_gen(self, num_feat, num_datapoints):
         """
@@ -155,12 +168,44 @@ class ThermalPrefDataGen(object):
         x_samp1_n1 = x_samp21[:-1]
         x_samp11 = np.append(x_samp1_01, x_samp1_n1)[:,None]
     
-        u1 = objfunc.beta_utility_gen(x_samp11, self.l,
+        u1, u1_der = objfunc.beta_utility_gen(x_samp11, self.l,
                                       self.a, self.b)
-        u2 = objfunc.beta_utility_gen(x_samp21, self.l,
+        u2, u2_der = objfunc.beta_utility_gen(x_samp21, self.l,
                                       self.a, self.b) 
 
         return (x_samp11, x_samp21, u1, u2)
+    
+    def gradient_duels_gen(self, num_feat, num_datapoints):
+        """
+        Generation of training duels and associated utilities
+        """
+        #n = 14 # number of datapoints
+        #x1 = np.linspace(self.Gridmin1, self.Gridmax1, n)[:, None] # Operating temp.
+        x1 = np.arange(self.Gridmin1, self.Gridmax1, self.temp_diff)[:,None]
+        
+         # sampling from indexes
+        indexes = np.arange(x1.shape[0])
+        
+        ind_samp1 = np.random.choice(indexes, size = 1)
+        x_samp1_01 = x1[ind_samp1]
+        
+        ind_samp2_all1 = np.random.choice(indexes, size = num_datapoints)
+        x_samp21 = x1[ind_samp2_all1]
+        x_samp1_n1 = x_samp21[:-1]
+        x_samp11 = np.append(x_samp1_01, x_samp1_n1)[:,None]
+    
+        u1, u1_der = objfunc.beta_utility_gen(x_samp11, self.l,
+                                      self.a, self.b)
+        u2, u2_der = objfunc.beta_utility_gen(x_samp21, self.l,
+                                      self.a, self.b) 
+        
+        u2_der = u2_der[:,0] 
+        y_pr = np.zeros(u2_der.shape[0])
+        y_pr[u2_der > 0] = 1.
+       
+        y_pr[u2_der < 0] = -1.
+
+        return (x_samp11, x_samp21, y_pr, u2_der)
     
     def pairwise1D(self, num_datapoints, save_file_name, save_file = False):
         """
@@ -177,6 +222,19 @@ class ThermalPrefDataGen(object):
         if save_file: 
             np.savez(save_file_name, X = X, Y = y_pr)
         return X, y_pr
+    
+    def gradientpairwise1D(self, num_datapoints, save_file_name, save_file = False):
+        """
+        Generate 1D pairwise preferences dataset
+        One feature values
+        """
+        num_feat = 1
+        (x_samp11,
+         x_samp21, y_pr, u2_der) = self.gradient_duels_gen(num_feat, num_datapoints)
+        X = np.hstack([x_samp11, x_samp21])
+        if save_file: 
+            np.savez(save_file_name, X = X, Y = y_pr)
+        return X, y_pr, u2_der
     
     
 class ReachableStates(object):
@@ -241,11 +299,11 @@ class ReachableStates(object):
     
 if __name__ == '__main__':
     config_file = '../config_files/thermal_config.json'
-    save_file_name1 = '../data/initial_duels/train1D.npz'
+    save_file_name1 = '../data/initial_duels/gradtrain1D.npz'
     save_file_name2 = '../data/initial_duels/train2D.npz'
     ThermalP = ThermalPrefDataGen(config_file)
     
-    X1, y_pr1 = ThermalP.pairwise1D(40, save_file_name1, save_file = True)
+    X1, y_pr1, u2_der = ThermalP.gradientpairwise1D(40, save_file_name1, save_file = True)
     #X2, y_pr2 = ThermalP.pairwise2D(40, save_file_name2, save_file = True)
     
        

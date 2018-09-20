@@ -91,6 +91,7 @@ class UnimodalLikelihood(Likelihood):
     def compute_logp(self, Y, F, F_prime, G, G_prime):
         return self.logp(Y, F, F_prime, G, G_prime)
 
+
 class UnimodalPrefLikelihood(UnimodalLikelihood):
     def __init__(self):
         """
@@ -103,10 +104,104 @@ class UnimodalPrefLikelihood(UnimodalLikelihood):
         #Fn = F_diff/(np.sqrt(2)*tf.sqrt(self.noise_variance))
         Fn = F_diff
         return tf.reduce_sum(densities.bernoulli(invlink(Fn), Y))
+
+
+class UnimodalHiLoPrefLike(UnimodalPrefLikelihood):
+    def __init__(self):
+        """
+        Likelihood for GP Preference model with unimodality constraints when
+        information about the gradient of utility is available
+        
+        For example:
+            x1     x2      what do you want? High or low?
+            20     24      want high then we get y = 1 and z(24) = 1 
+            24     27      want low then we get y = 0 and z(24) = -1
+            27     26      want low then we get y = 0 and z(26) = -1
+        Hence we need to add one more component to our log-like
+        Refer pg. 16 FALL 18 Notability notes
+        """
+        UnimodalPrefLikelihood.__init__(self)
+    
+    def log_zobs(self, z_obs, F_prime_z_obs):
+        """
+        log likelihood of observing z_obs given f_prime at those locations
+        Inputs:
+            z_obs : gradient information available through duels
+            F_prime_z_obs : gradient of f_prime at z_obs locations
+        """
+        nu_fprime_z_obs = 1./1e-2
+        like = probit(z_obs*nu_fprime_z_obs*F_prime_z_obs)
+        log_like = tf.log(like)
+        
+        return tf.reduce_sum(log_like)
+    
+    def logp(self, Y, F, F_prime, G, G_prime, z_obs, F_prime_z_obs):
+        """
+        Refer to page 2
+        https://bayesopt.github.io/papers/2017/9.pdf
+        """
+        log_like1 = self.logp_ygivenf(F, Y)
+        log_like2 = self.log_interlike(F_prime, G)
+        log_like3 = self.log_monotonic(G_prime)
+        log_like4 = self.log_zobs(z_obs, F_prime_z_obs)
+        log_like = log_like1 + log_like2 + log_like3 + log_like4
+        
+        return log_like
+    
+    @AutoFlow((float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]))
+    def compute_logp(self, Y, F, F_prime, G, G_prime, z_obs, F_prime_z_obs):
+        return self.logp(Y, F, F_prime, G, G_prime, z_obs, F_prime_z_obs)
+
+
+class UnimodalHiLoPrefLike1(UnimodalHiLoPrefLike):
+    def __init__(self):
+        """
+        Likelihood for GP Preference model with unimodality constraints when
+        information about the gradient of utility is available.
+        We assume that we do not know what the y value (prefer previous over current or vice vera) is going to be
+        
+        For example:
+            x1     x2      what do you want? High or low?
+            20     24      want high then we get z(24) = 1 
+            24     27      want low then we get z(24) = -1
+            27     26      want low then we get z(26) = -1
+        Hence we need to add one more component to our log-like
+        Refer pg. 16 FALL 18 Notability notes
+        """
+        UnimodalPrefLikelihood.__init__(self)
+    
+    def logp(self, F_prime, G, G_prime, z_obs, F_prime_z_obs):
+        """
+        Refer to page 2
+        https://bayesopt.github.io/papers/2017/9.pdf
+        """
+        log_like2 = self.log_interlike(F_prime, G)
+        log_like3 = self.log_monotonic(G_prime)
+        log_like4 = self.log_zobs(z_obs, F_prime_z_obs)
+        log_like = log_like2 + log_like3 + log_like4
+        
+        return log_like
+    
+    @AutoFlow((float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]),
+              (float_type, [None, None]))
+    def compute_logp(self, F_prime, G, G_prime, z_obs, F_prime_z_obs):
+        return self.logp(F_prime, G, G_prime, z_obs, F_prime_z_obs)
         
     
     
     
+
 if __name__ == '__main__':
     f = np.array([0,1,2,3])[:,None]
     f_prime = np.array([4,5])[:,None]

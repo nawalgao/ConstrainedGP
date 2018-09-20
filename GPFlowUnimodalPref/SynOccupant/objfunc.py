@@ -34,10 +34,10 @@ def beta_utility_gen(X, x_max, a, b):
 
     x_norm = X/x_max
     u = beta.pdf(x_norm, a, b)
-    #u_max = np.max(u)
-    #u_min = np.min(u)
+    u_der = ((a - 1)/x_norm - (b - 1)/(1 - x_norm))* u
     u_norm = (u - u_min_all)/(u_max_all - u_min_all)
-    return u_norm
+    u_der_norm = u_der/(u_max_all - u_min_all)
+    return u_norm, u_der_norm
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -45,6 +45,6 @@ if __name__ == '__main__':
     x_max = 20
     a = 6
     b = 8
-    u = beta_utility_gen(xx, x_max, a, b)
+    u, u_der_norm = beta_utility_gen(xx, x_max, a, b)
     
     
