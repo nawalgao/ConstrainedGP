@@ -11,7 +11,7 @@ import json # Needed for config file
 import os
 import gpflow
  
-from .unimodal_gpmc import UnimodalPrefGPMC, UnimodalHiLoPrefGPMC
+from .unimodal_gpmc import UnimodalPrefGPMC, UnimodalHiLoPrefGPMC, UnimodalHiLoPrefGPMC1
 
 class Train(object):
     """
@@ -23,8 +23,9 @@ class Train(object):
         Y = 1 if current is prefered ; 0 if previous is preferred 
         config_file : visual preferences related configuration settings  
     """
-    def __init__(self, X, Y, X_prime, config_file, model_num = 1):
+    def __init__(self, X, Y, Yder, X_prime, config_file, model_num = 1):
         self.X = X
+        self.Yder = Yder.astype(float)
         self.Y = Y.astype(float)
         self.X_prime = X_prime
         self.config_file = config_file
@@ -53,6 +54,17 @@ class Train(object):
             m = UnimodalHiLoPrefGPMC(self.Xn, self.Y, self.X_prime)
             print '-' * 40
             print 'Model is 2'
+            print '-' * 40
+            m.likelihood.noise_variance = gpflow.priors.Gamma(1., 1.)
+            m.kern_f.lengthscale.prior = gpflow.priors.Gamma(1., 1.)
+            m.kern_f.signal_variance.prior = gpflow.priors.Gamma(1.,1.)
+            m.kern_g.lengthscale.prior = gpflow.priors.Gamma(1., 1.)
+            m.kern_g.signal_variance.prior = gpflow.priors.Gamma(1.,1.)
+        if model_num == 3:
+            # Model Configuration
+            m = UnimodalHiLoPrefGPMC1(self.Xn, self.Y, self.Yder, self.X_prime)
+            print '-' * 40
+            print 'Model is 3'
             print '-' * 40
             m.likelihood.noise_variance = gpflow.priors.Gamma(1., 1.)
             m.kern_f.lengthscale.prior = gpflow.priors.Gamma(1., 1.)

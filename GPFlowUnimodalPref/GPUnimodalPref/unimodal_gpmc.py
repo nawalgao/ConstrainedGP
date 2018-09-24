@@ -14,7 +14,7 @@ from gpflow._settings import settings
 float_type = settings.dtypes.float_type
 from .unimodal_gp import UnimodalGP
 from .unimodal_conditional import monotone_conditional
-from .unimodal_like import UnimodalPrefLikelihood, UnimodalHiLoPrefLike1
+from .unimodal_like import UnimodalPrefLikelihood, UnimodalHiLoPrefLike1, UnimodalHiLoPrefLike
 
 class UnimodalGPMC(UnimodalGP):
     def __init__(self, X, Y, X_prime):
@@ -173,14 +173,14 @@ class UnimodalHiLoPrefGPMC(UnimodalPrefGPMC):
       Refer:
       https://bayesopt.github.io/papers/2017/9.pdf
      """
-     def __init__(self, X, Y, X_prime):
+     def __init__(self, X, Yder, X_prime):
          X_cur = X[X.shape[0]/2:, :]
          X_prime_concat = np.vstack([X_cur, X_prime])
          self.X_prime_concat = DataHolder(X_prime_concat, on_shape_change='recompile')
-         X_concat = np.vstack([X, X_cur, X_prime])
+         X_concat = np.vstack([X, X_prime_concat])
          X_concat = DataHolder(X_concat, on_shape_change='recompile')
-         Y = DataHolder(Y, on_shape_change='recompile')
-         UnimodalGP.__init__(self, X_concat, Y)
+         #Yder = DataHolder(Yder, on_shape_change='recompile')
+         UnimodalGP.__init__(self, X_concat, Yder)
          
          self.X = DataHolder(X)
          self.X_cur = DataHolder(X_cur)
@@ -190,9 +190,11 @@ class UnimodalHiLoPrefGPMC(UnimodalPrefGPMC):
          self.num_xcur_points = X_cur.shape[0]
          self.num_x_points = X.shape[0]
          self.num_der_points = X_prime.shape[0]
-         self.num_latent = Y.shape[1]
+         self.num_latent = Yder.shape[1]
          
          self.Vf = Param(np.zeros((self.num_data, self.num_latent)))
+         self.Vfdd = Param(np.zeros((self.X_prime_concat.shape[0],
+                                     self.num_latent)))
          self.Vf.prior = Gaussian(0., 1.)
         
          self.Vg = Param(np.zeros((2*self.num_der_points, self.num_latent)))
@@ -200,23 +202,60 @@ class UnimodalHiLoPrefGPMC(UnimodalPrefGPMC):
          
          self.likelihood = UnimodalHiLoPrefLike1()
          
+         if isinstance(Yder, np.ndarray):
+            #: Y is a data matrix, rows correspond to the rows in X, columns are treated independently
+            Yder = DataHolder(Yder)
+         self.Yder = Yder
      def build_likelihood(self):
+         Kfjoint = self.kern_f.Kj(self.X, self.X_prime_concat)
+         Kgjoint = self.kern_g.Kj(self.X_prime, self.X_prime)
+         self.Kf_comp = self.kern_f.compute_Kj(self.X, self.X_prime_concat)
+         
+         Lf = tf.cholesky(Kfjoint + tf.eye(tf.shape(self.X_concat)[0], dtype=float_type)*
+                          settings.numerics.jitter_level)
+         Lg = tf.cholesky(Kgjoint + tf.eye(2*tf.shape(self.X_prime)[0], dtype=float_type)*
+                          settings.numerics.jitter_level)
+         
+         F_concat = tf.matmul(Lf, self.Vf)
+         F, F_prime_z_obs, F_prime = tf.split(F_concat, [self.num_x_points,self.num_xcur_points, self.num_der_points])
         
-        Kfjoint = self.kern_f.Kj(self.X, self.X_prime_concat)
-        Kgjoint = self.kern_g.Kj(self.X_prime, self.X_prime)
+         G_concat = tf.matmul(Lg, self.Vg)
+         G, G_prime = tf.split(G_concat, [self.num_der_points, self.num_der_points])
+         log_like = self.likelihood.logp(F_prime, G, G_prime, self.Yder, F_prime_z_obs)
+         return log_like
+
+class UnimodalHiLoPrefGPMC1(UnimodalHiLoPrefGPMC):
+    def __init__(self, X, Y, Yder, X_prime):
+        UnimodalHiLoPrefGPMC.__init__(self, X, Y, X_prime)
+        self.likelihood = UnimodalHiLoPrefLike()
+        if isinstance(Yder, np.ndarray):   
+            Yder = DataHolder(Yder)
+        self.Yder = Yder
+    
+    def build_likelihood(self):
+         Kfjoint = self.kern_f.Kj(self.X, self.X_prime_concat)
+         Kgjoint = self.kern_g.Kj(self.X_prime, self.X_prime)
         
-        Lf = tf.cholesky(Kfjoint + tf.eye(tf.shape(self.X_concat)[0], dtype=float_type)*
-                        settings.numerics.jitter_level)
-        Lg = tf.cholesky(Kgjoint + tf.eye(2*tf.shape(self.X_prime)[0], dtype=float_type)*
-                        settings.numerics.jitter_level)
+         Lf = tf.cholesky(Kfjoint + tf.eye(tf.shape(self.X_concat)[0], dtype=float_type)*
+                          settings.numerics.jitter_level)
+         Lg = tf.cholesky(Kgjoint + tf.eye(2*tf.shape(self.X_prime)[0], dtype=float_type)*
+                          settings.numerics.jitter_level)
+         
+         F_concat = tf.matmul(Lf, self.Vf)
+         F, F_prime_z_obs, F_prime = tf.split(F_concat, [self.num_x_points,self.num_xcur_points, self.num_der_points])
         
-        F_concat = tf.matmul(Lf, self.Vf)
-        F, F_prime_z_obs, F_prime = tf.split(F_concat, [self.num_x_points,self.num_xcur_points, self.num_der_points])
+         G_concat = tf.matmul(Lg, self.Vg)
+         G, G_prime = tf.split(G_concat, [self.num_der_points, self.num_der_points])
+         log_like = self.likelihood.logp(self.Y, F, F_prime, G, G_prime, self.Yder, F_prime_z_obs)
+         return log_like
+     
+    
+def is_pos_def(x):
+    return np.all(np.linalg.eigvals(x) > 0)
+         
+
+
         
-        G_concat = tf.matmul(Lg, self.Vg)
-        G, G_prime = tf.split(G_concat, [self.num_der_points, self.num_der_points])
-        log_like = self.likelihood.logp(F_prime, G, G_prime, self.Y, F_prime_z_obs)
-        return log_like
         
         
          

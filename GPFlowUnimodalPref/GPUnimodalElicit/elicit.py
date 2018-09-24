@@ -17,7 +17,7 @@ from ..Misc import visualize
 
 
 class IntegratedAquisition(object):
-    def __init__(self, X, Y, X_prime, config_file, model_num,
+    def __init__(self, X, Y, Yder, X_prime, config_file, model_num,
                  mcmc = True, reachable = False):
         
         """
@@ -28,6 +28,7 @@ class IntegratedAquisition(object):
         self.X = X
         self.num_feat = X.shape[1]/2
         self.Y = Y
+        self.Yder = Yder
         self.config_file = config_file
         self.model_num = model_num
         if self.num_feat == 1:
@@ -39,7 +40,7 @@ class IntegratedAquisition(object):
              
         # Train the model based on training pairwise comparisons
            
-        TRAIN = Train(self.Xtrainnorm, Y, self.X_prime_norm,
+        TRAIN = Train(self.Xtrainnorm, self.Y, self.Yder, self.X_prime_norm,
                       config_file, self.model_num)
         if mcmc: 
             self.m, self.samples = TRAIN.mcmc(config_file)

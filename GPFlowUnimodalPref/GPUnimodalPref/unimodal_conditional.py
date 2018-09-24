@@ -11,7 +11,7 @@ from gpflow.scoping import NameScoped
 from gpflow._settings import settings
 float_type = settings.dtypes.float_type
 
-@NameScoped("conditional")
+@NameScoped("monotone_conditional")
 def monotone_conditional(Xnew, X, X_prime, kern, f_concat, whiten=False):
     """
     Given F, representing the GP at the points X, and

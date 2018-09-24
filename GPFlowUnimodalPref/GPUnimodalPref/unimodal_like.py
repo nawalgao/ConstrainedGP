@@ -129,8 +129,8 @@ class UnimodalHiLoPrefLike(UnimodalPrefLikelihood):
             z_obs : gradient information available through duels
             F_prime_z_obs : gradient of f_prime at z_obs locations
         """
-        nu_fprime_z_obs = 1./1e-2
-        like = probit(z_obs*nu_fprime_z_obs*F_prime_z_obs)
+        nu_fprime_z_obs = 1./1e-6
+        like = probit(z_obs*nu_fprime_z_obs*F_prime_z_obs) # tweaking -1 +1 multiply
         log_like = tf.log(like)
         
         return tf.reduce_sum(log_like)
@@ -145,7 +145,7 @@ class UnimodalHiLoPrefLike(UnimodalPrefLikelihood):
         log_like3 = self.log_monotonic(G_prime)
         log_like4 = self.log_zobs(z_obs, F_prime_z_obs)
         log_like = log_like1 + log_like2 + log_like3 + log_like4
-        
+        #log_like = log_like1 + log_like4
         return log_like
     
     @AutoFlow((float_type, [None, None]),

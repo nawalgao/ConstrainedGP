@@ -2,11 +2,11 @@
 "MCMC":
 	{
 		"MAP_optimize_maxiter" : 150,
-		"num_samples" : 5000,
+		"num_samples" : 100,
 		"thin" : 2,
-		"burn" : 3000,
-		"epsilon" : 0.01,
-		"Lmax" : 20,
+		"burn" : 10,
+		"epsilon" : 0.005,
+		"Lmax" : 40,
 		"verbose" : "True"
 	},
 "MAP":

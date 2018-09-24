@@ -97,10 +97,25 @@ def is_pos_def(x):
     return np.all(np.linalg.eigvals(x) > 0)
 
 if __name__ == '__main__':
+    
     import numpy as np
-    a = np.array([1,2,3])
-    b = np.array([4,5])
-    c = np.array([6])
+#    a = np.array([1,2,3])
+#    b = np.array([4,5])
+#    c = np.array([6])
     K = ExtendRBF1D()
-    kmn = K.compute_Kmn(c[:,None], a[:,None], b[:,None])
-    #kmn = K.compute_Kj(a[:,None], b[:,None])
+#    kmn = K.compute_Kmn(c[:,None], a[:,None], b[:,None])
+#    kmn = K.compute_Kj(a[:,None], b[:,None])
+    
+    data_file = '../data/initial_duels/gradtrain1D.npz'
+    data = np.load(data_file)
+    X = data['X']
+    Y = data['Y']
+    Y_der = data['Y_der']
+    
+    X2 = X[:,1][:,None]
+    X1 = X[:,0][:,None]
+    X11 = np.vstack([X2,X1])
+    X12 = X2
+    X13 = X_prime
+    Xx = np.vstack([X12,X13])
+    

@@ -200,12 +200,12 @@ class ThermalPrefDataGen(object):
                                       self.a, self.b) 
         
         u2_der = u2_der[:,0] 
-        y_pr = np.zeros(u2_der.shape[0])
-        y_pr[u2_der > 0] = 1.
+        y_der = np.zeros(u2_der.shape[0])
+        y_der[u2_der > 0] = 1.
        
-        y_pr[u2_der < 0] = -1.
+        y_der[u2_der < 0] = -1.
 
-        return (x_samp11, x_samp21, y_pr, u2_der)
+        return (x_samp11, x_samp21, y_der, u1, u2)
     
     def pairwise1D(self, num_datapoints, save_file_name, save_file = False):
         """
@@ -230,11 +230,13 @@ class ThermalPrefDataGen(object):
         """
         num_feat = 1
         (x_samp11,
-         x_samp21, y_pr, u2_der) = self.gradient_duels_gen(num_feat, num_datapoints)
+         x_samp21, y_der,
+         u1, u2) = self.gradient_duels_gen(num_feat, num_datapoints)
+        y_pr = gen_output(u1, u2)
         X = np.hstack([x_samp11, x_samp21])
         if save_file: 
-            np.savez(save_file_name, X = X, Y = y_pr)
-        return X, y_pr, u2_der
+            np.savez(save_file_name, X = X, Y = y_pr, Y_der = y_der)
+        return X, y_pr, y_der
     
     
 class ReachableStates(object):
@@ -303,7 +305,7 @@ if __name__ == '__main__':
     save_file_name2 = '../data/initial_duels/train2D.npz'
     ThermalP = ThermalPrefDataGen(config_file)
     
-    X1, y_pr1, u2_der = ThermalP.gradientpairwise1D(40, save_file_name1, save_file = True)
+    X1, y_pr1, y_der = ThermalP.gradientpairwise1D(40, save_file_name1, save_file = True)
     #X2, y_pr2 = ThermalP.pairwise2D(40, save_file_name2, save_file = True)
     
        

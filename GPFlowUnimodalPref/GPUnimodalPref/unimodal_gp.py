@@ -138,5 +138,7 @@ class UnimodalGP(gpflow.model.Model):
         """
         pred_f_mean, pred_f_var = self.build_predict(Xnew)
         return self.likelihood.predict_density(pred_f_mean, pred_f_var, Ynew)
+
+
     
     
